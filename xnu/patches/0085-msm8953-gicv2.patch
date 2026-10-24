@@ -309,10 +309,10 @@ index 6089db9..b3b1203 100644
  pe_init_fiq()
 diff --git a/pexpert/pexpert/arm64/MSM8953.h b/pexpert/pexpert/arm64/MSM8953.h
 new file mode 100644
-index 0000000..0889f19
+index 0000000..408eeea
 --- /dev/null
 +++ b/pexpert/pexpert/arm64/MSM8953.h
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,125 @@
 +/*
 + * Board config for the Nubia Z11 mini s (nx549j, Qualcomm MSM8953 /
 + * Snapdragon 625): eight Cortex-A53, ARMv8.0, no PAC.
@@ -386,6 +386,9 @@ index 0000000..0889f19
 + */
 +#define MSM8953_VTIMER_INTID      20
 +#define MSM8953_PTIMER_INTID      19
++
++/* SweetCPU.cpp (shared with sweet) raises the cross-CPU SGI by this name. */
++#define SWEET_IPI_SGI             1
 +#define MSM8953_IPI_SGI           1
 +
 +#define GIC_SPURIOUS_IRQ          1023
