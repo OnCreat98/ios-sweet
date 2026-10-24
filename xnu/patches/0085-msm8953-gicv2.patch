@@ -16,10 +16,10 @@ index f2d8bf8..1a40f4c 100644
  sweet_pthread_init.o_INCFLAGS = $(SWEET_PTHREAD_INC)
 diff --git a/config/MASTER.arm64.msm8953 b/config/MASTER.arm64.msm8953
 new file mode 100644
-index 0000000..20f67d8
+index 0000000..0805be5
 --- /dev/null
 +++ b/config/MASTER.arm64.msm8953
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,119 @@
 +#
 +# msm8953 (Nubia Z11 mini s, NX549J): MASTER.arm64.MacOSX plus the open-source
 +# arm64 assembly and pmap (nos_arm_asm, nos_arm_pmap). Apple's own SoC configs
@@ -135,8 +135,12 @@ index 0000000..20f67d8
 +
 +options   CONFIG_RESLIDE_SHARED_CACHE		# <reslide_shared_cache>
 +options   CONFIG_KERNEL_TBI		# <kernel_tbi>
++
++# serial_console.c defines sweet_console_muted, which the framebuffer driver
++# toggles when it takes over the panel.
++options   SERIAL_CONSOLE
 diff --git a/iokit/Kernel/arm/SweetCPU.cpp b/iokit/Kernel/arm/SweetCPU.cpp
-index 2545cf9..7cc9efd 100644
+index 2545cf9..6f8d03c 100644
 --- a/iokit/Kernel/arm/SweetCPU.cpp
 +++ b/iokit/Kernel/arm/SweetCPU.cpp
 @@ -217,6 +217,19 @@ SweetCPU::signalCPU(IOCPU *target)
@@ -150,7 +154,7 @@ index 2545cf9..7cc9efd 100644
 +	 * bitmap to GICD_SGIR, so only Aff0 is routable (cores 0..7), which is
 +	 * exactly this SoC's layout: eight A53s numbered 0..7.
 +	 */
-+	extern void gic_v2_send_sgi(unsigned int sgi, unsigned int target_mask);
++	extern "C" void gic_v2_send_sgi(unsigned int sgi, unsigned int target_mask);
 +	if (aff0 >= 8) {
 +		panic("SWEET CPU: GICv2 SGI target out of range (%u)", aff0);
 +	}
@@ -170,7 +174,7 @@ index 2545cf9..7cc9efd 100644
  }
  
 diff --git a/makedefs/MakeInc.def b/makedefs/MakeInc.def
-index 9a748ea..ea7aa79 100644
+index 9a748ea..4d52eed 100644
 --- a/makedefs/MakeInc.def
 +++ b/makedefs/MakeInc.def
 @@ -29,7 +29,7 @@ SUPPORTED_ARM64_MACHINE_CONFIGS = NONE
@@ -188,7 +192,7 @@ index 9a748ea..ea7aa79 100644
  MACHINE_FLAGS_ARM64_SWEET = -DARM64_BOARD_CONFIG_SWEET                -march=armv8.2-a+crypto
 +# Cortex-A53 is ARMv8.0: no LSE atomics, no v8.1/v8.2 features, but AES/SHA1/
 +# SHA2/CRC32 are present (checked in /proc/cpuinfo on the device), hence +crypto.
-+MACHINE_FLAGS_ARM64_MSM8953 = -DARM64_BOARD_CONFIG_MSM8953             -march=armv8-a+crypto
++MACHINE_FLAGS_ARM64_MSM8953 = -DARM64_BOARD_CONFIG_MSM8953 -DARM64_BOARD_CONFIG_SWEET -march=armv8-a+crypto
  
  
  #
@@ -590,11 +594,30 @@ index c7d274f..3b34a7f 100644
  
  # Headers installed into System.framework/PrivateHeaders (userspace internal SDK only).
 diff --git a/pexpert/pexpert/arm64/board_config.h b/pexpert/pexpert/arm64/board_config.h
-index fee661e..ad3ff8a 100644
+index fee661e..c1239ea 100644
 --- a/pexpert/pexpert/arm64/board_config.h
 +++ b/pexpert/pexpert/arm64/board_config.h
-@@ -108,6 +108,17 @@
+@@ -97,7 +97,15 @@
+ #define CORE_NCTRS                     8 /* Placeholder; KPC is not enabled for this target */
+ #endif  /* ARM64_BOARD_CONFIG_BCM2837 */
  
++/*
++ * MSM8953 carries -DARM64_BOARD_CONFIG_SWEET as well, so that the shared
++ * hackios bring-up code (79 sites guarded by that macro) is compiled in. The
++ * board header itself must stay MSM8953's, hence the explicit exclusion here:
++ * SWEET.h defines HAS_GIC_V3 and MST8953.h defines HAS_GIC_V2, and only one
++ * may win.
++ */
+ #ifdef ARM64_BOARD_CONFIG_SWEET
++#if !defined(ARM64_BOARD_CONFIG_MSM8953)
+ #include <pexpert/arm64/SWEET.h>
+ 
+ #define MAX_L2_CLINE                   6
+@@ -106,8 +114,20 @@
+ 
+ #define CORE_NCTRS                     8 /* Placeholder; KPC is not enabled for this target */
+ 
++#endif  /* !ARM64_BOARD_CONFIG_MSM8953 */
  #endif  /* ARM64_BOARD_CONFIG_SWEET */
  
 +#ifdef ARM64_BOARD_CONFIG_MSM8953
