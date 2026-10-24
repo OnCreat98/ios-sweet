@@ -32,6 +32,19 @@ index 2545cf9..7cc9efd 100644
  	__builtin_arm_isb(ISB_SY);
  }
  
+diff --git a/makedefs/MakeInc.def b/makedefs/MakeInc.def
+index 9a748ea..bba1476 100644
+--- a/makedefs/MakeInc.def
++++ b/makedefs/MakeInc.def
+@@ -29,7 +29,7 @@ SUPPORTED_ARM64_MACHINE_CONFIGS = NONE
+ else ifneq ($(findstring _host,$(RC_ProjectName)),)
+ SUPPORTED_ARM64_MACHINE_CONFIGS = NONE
+ else
+-SUPPORTED_ARM64_MACHINE_CONFIGS = BCM2837 T6000 T8101 T8103 VMAPPLE SWEET
++SUPPORTED_ARM64_MACHINE_CONFIGS = BCM2837 T6000 T8101 T8103 VMAPPLE SWEET MSM8953
+ 
+ endif
+ 
 diff --git a/osfmk/arm64/sleh.c b/osfmk/arm64/sleh.c
 index b8be8df..2d1a35d 100644
 --- a/osfmk/arm64/sleh.c
