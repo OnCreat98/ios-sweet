@@ -45,6 +45,29 @@ index 9a748ea..bba1476 100644
  
  endif
  
+diff --git a/osfmk/arm64/proc_reg.h b/osfmk/arm64/proc_reg.h
+index e01c124..43abdd7 100644
+--- a/osfmk/arm64/proc_reg.h
++++ b/osfmk/arm64/proc_reg.h
+@@ -213,6 +213,18 @@
+ /* D-Cache. */
+ #define MMU_CLINE   6
+ 
++#elif defined (MSM8953) /* Qualcomm MSM8953: 8x Cortex-A53 */
++
++/*
++ * ARM's own numbers for the A53: 32KB L1 I-cache (2-way) and 32KB L1
++ * D-cache (4-way), both with 64-byte lines. proc_reg.h is also compiled for
++ * the exported headers, where board_config.h is not included, so this branch
++ * keys off -DMSM8953 rather than the SWEET define from MSM8953.h.
++ */
++#define MMU_I_CLINE 6
++
++#define MMU_CLINE   6
++
+ #elif defined (SWEET) /* Qualcomm Kryo 470: Cortex-A76 + Cortex-A55 */
+ 
+ /* I-Cache. */
 diff --git a/osfmk/arm64/sleh.c b/osfmk/arm64/sleh.c
 index b8be8df..2d1a35d 100644
 --- a/osfmk/arm64/sleh.c
