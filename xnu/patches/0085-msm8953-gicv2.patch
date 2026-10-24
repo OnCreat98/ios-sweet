@@ -322,10 +322,10 @@ index b8be8df..2d1a35d 100644
  	sleh_interrupt_handler_prologue(state, DBG_INTR_TYPE_OTHER);
  
 diff --git a/pexpert/arm/pe_fiq.c b/pexpert/arm/pe_fiq.c
-index 6089db9..b3b1203 100644
+index 6089db9..1fbd35e 100644
 --- a/pexpert/arm/pe_fiq.c
 +++ b/pexpert/arm/pe_fiq.c
-@@ -222,6 +222,145 @@ pe_init_fiq()
+@@ -222,6 +222,155 @@ pe_init_fiq()
  	__builtin_arm_isb(ISB_SY);
  #endif /* SWEET */
  }
@@ -443,8 +443,7 @@ index 6089db9..b3b1203 100644
 +		panic("%s: cannot map GICC", __func__);
 +	}
 +
-+	/* Distributor on: GICv2 has a single enable bit (no Group0/Group1
-+	 * split like GICv3's ENABLEGRP1/ENABLEGRP1A). */
++	/* Distributor on for both groups; every interrupt we own is Group 1. */
 +	gicd_write32(GICD_CTLR, GICD_CTLR_ENABLE);
 +	while (gicd_read32(GICD_CTLR) & GICD_CTLR_RWP) {
 +		;
@@ -460,9 +459,20 @@ index 6089db9..b3b1203 100644
 +	for (unsigned int i = 0; i < 32; i += 4) {
 +		gicd_write32(GICD_IPRIORITYR + i, 0xA0A0A0A0);
 +	}
++	/*
++	 * GICv2 needs an explicit target CPU per PPI/SGI (GICv3 gets this from
++	 * the per-core redistributor). Without it the PPIs have no target and
++	 * the timer interrupt is never delivered -- the kernel boots and then
++	 * simply never ticks. Point them at CPU0, the only core we run.
++	 */
++	for (unsigned int i = 0; i < 32; i += 4) {
++		gicd_write32(GICD_ITARGETSR + i, 0x01010101);
++	}
 +	gicd_write32(GICD_ISENABLER, (1U << msm_vtimer_intid) | (1U << MSM8953_IPI_SGI));
 +
-+	/* CPU interface: wide priority mask, no subpriority grouping, enabled. */
++	/* CPU interface: wide priority mask, no subpriority grouping, and both
++	 * groups enabled -- GICC_CTLR has the same Grp0/Grp1 split as GICD_CTLR,
++	 * so enabling only bit 0 would still drop every Group 1 IRQ. */
 +	gicc_write32(GICC_PMR, 0xFF);
 +	gicc_write32(GICC_BPR, 0);
 +	gicc_write32(GICC_CTLR, GICC_CTLR_ENABLE);
@@ -473,10 +483,10 @@ index 6089db9..b3b1203 100644
  pe_init_fiq()
 diff --git a/pexpert/pexpert/arm64/MSM8953.h b/pexpert/pexpert/arm64/MSM8953.h
 new file mode 100644
-index 0000000..408eeea
+index 0000000..0d81e3c
 --- /dev/null
 +++ b/pexpert/pexpert/arm64/MSM8953.h
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,133 @@
 +/*
 + * Board config for the Nubia Z11 mini s (nx549j, Qualcomm MSM8953 /
 + * Snapdragon 625): eight Cortex-A53, ARMv8.0, no PAC.
@@ -575,8 +585,14 @@ index 0000000..408eeea
 +#define GICD_ICFGR                0xC00
 +#define GICD_SGIR                 0xF00
 +
-+/* Distributor control bits */
-+#define GICD_CTLR_ENABLE          0x1     /* GICv2: one bit enables the distributor */
++/*
++ * Distributor control bits. GICv2 splits the enable into Group 0 and Group 1
++ * (GICv3 replaced it with ENABLEGRP1/ENABLEGRP1A and ARE). Everything XNU
++ * takes here is Group 1 (see IGROUPR), so bit 1 is the one that matters.
++ */
++#define GICD_CTLR_ENABLEGRP0      0x1
++#define GICD_CTLR_ENABLEGRP1      0x2
++#define GICD_CTLR_ENABLE          (GICD_CTLR_ENABLEGRP0 | GICD_CTLR_ENABLEGRP1)
 +#define GICD_CTLR_RWP             0x80000000
 +
 +/* Software Generated Interrupt register (GICv2 path for an SGI) */
@@ -595,8 +611,10 @@ index 0000000..408eeea
 +#define GICC_HPPIR                0x0018
 +#define GICC_DIR                  0x1000
 +
-+/* CPU interface control bits */
-+#define GICC_CTLR_ENABLE          0x1
++/* CPU interface control bits: also split Group 0 / Group 1. */
++#define GICC_CTLR_ENABLEGRP0      0x1
++#define GICC_CTLR_ENABLEGRP1      0x2
++#define GICC_CTLR_ENABLE          (GICC_CTLR_ENABLEGRP0 | GICC_CTLR_ENABLEGRP1)
 +
 +/* GICC_IAR/EOIR special values */
 +#define GICC_IAR_SPURIOUS         1023
