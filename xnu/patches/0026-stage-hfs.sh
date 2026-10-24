@@ -3,7 +3,11 @@
 # dxb runs patches/*.sh from the XNU source root before applying *.patch.
 set -euo pipefail
 
-[[ "${MACHINE_CONFIG:-}" == SWEET ]] || exit 0
+# SWEET and MSM8953 both use the built-in HFS (hackios forks share bsd/sweet_hfs).
+case "${MACHINE_CONFIG:-}" in
+SWEET|MSM8953) ;;
+*) exit 0 ;;
+esac
 [[ "${MACOS_VERSION:-}" == 13.5 ]] || {
     echo 'SWEET HFS integration requires xnu-8796.141.3 (macOS 13.5)' >&2
     exit 1
