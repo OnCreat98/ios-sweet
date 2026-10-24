@@ -140,10 +140,21 @@ index 0000000..0805be5
 +# toggles when it takes over the panel.
 +options   SERIAL_CONSOLE
 diff --git a/iokit/Kernel/arm/SweetCPU.cpp b/iokit/Kernel/arm/SweetCPU.cpp
-index 2545cf9..6f8d03c 100644
+index 2545cf9..c967778 100644
 --- a/iokit/Kernel/arm/SweetCPU.cpp
 +++ b/iokit/Kernel/arm/SweetCPU.cpp
-@@ -217,6 +217,19 @@ SweetCPU::signalCPU(IOCPU *target)
+@@ -20,6 +20,10 @@
+ 
+ extern "C" void sweet_secondary_entry(void);
+ extern "C" boolean_t sweet_cpu_signal_is_enabled(unsigned int cpu);
++#if HAS_GIC_V2
++/* pe_fiq.c: GICv2 raises cross-CPU signals through GICD_SGIR. C linkage. */
++extern "C" void gic_v2_send_sgi(unsigned int sgi, unsigned int target_mask);
++#endif
+ 
+ class SweetCPU;
+ static SweetCPU *sweet_cpus[MAX_CPUS];
+@@ -217,6 +221,18 @@ SweetCPU::signalCPU(IOCPU *target)
  	/* Use the TARGET affinity, including Aff1, never the sender's MPIDR. */
  	uint64_t mpidr = topology->cpus[logical].phys_id;
  	unsigned int aff0 = mpidr & 0xff;
@@ -154,7 +165,6 @@ index 2545cf9..6f8d03c 100644
 +	 * bitmap to GICD_SGIR, so only Aff0 is routable (cores 0..7), which is
 +	 * exactly this SoC's layout: eight A53s numbered 0..7.
 +	 */
-+	extern "C" void gic_v2_send_sgi(unsigned int sgi, unsigned int target_mask);
 +	if (aff0 >= 8) {
 +		panic("SWEET CPU: GICv2 SGI target out of range (%u)", aff0);
 +	}
@@ -163,7 +173,7 @@ index 2545cf9..6f8d03c 100644
  	if (aff0 >= 16) {
  		panic("SWEET CPU: SGI target requires unsupported range selector");
  	}
-@@ -224,8 +237,8 @@ SweetCPU::signalCPU(IOCPU *target)
+@@ -224,8 +240,8 @@ SweetCPU::signalCPU(IOCPU *target)
  	    (((mpidr >> 16) & 0xff) << 32) |
  	    (((mpidr >> 8) & 0xff) << 16) |
  	    ((uint64_t)SWEET_IPI_SGI << 24) | (1ULL << aff0);
