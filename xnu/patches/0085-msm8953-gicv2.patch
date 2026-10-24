@@ -33,7 +33,7 @@ index 2545cf9..7cc9efd 100644
  }
  
 diff --git a/makedefs/MakeInc.def b/makedefs/MakeInc.def
-index 9a748ea..f5c8d65 100644
+index 9a748ea..8615408 100644
 --- a/makedefs/MakeInc.def
 +++ b/makedefs/MakeInc.def
 @@ -29,7 +29,7 @@ SUPPORTED_ARM64_MACHINE_CONFIGS = NONE
@@ -45,7 +45,17 @@ index 9a748ea..f5c8d65 100644
  
  endif
  
-@@ -105,6 +105,7 @@ DEPLOYMENT_TARGET_DEFINES = -DXNU_PLATFORM_$(PLATFORM)
+@@ -62,6 +62,9 @@ MACHINE_FLAGS_ARM64_T6000 = -DARM64_BOARD_CONFIG_T6000 		-mcpu=apple-a14
+ MACHINE_FLAGS_ARM64_VMAPPLE = -DARM64_BOARD_CONFIG_VMAPPLE              -march=armv8.5a
+ MACHINE_FLAGS_ARM64_BCM2837 = -DARM64_BOARD_CONFIG_BCM2837
+ MACHINE_FLAGS_ARM64_SWEET = -DARM64_BOARD_CONFIG_SWEET                -march=armv8.2-a+crypto
++# Cortex-A53 is ARMv8.0: no LSE atomics, no v8.1/v8.2 features, but AES/SHA1/
++# SHA2/CRC32 are present (checked in /proc/cpuinfo on the device), hence +crypto.
++MACHINE_FLAGS_ARM64_MSM8953 = -DARM64_BOARD_CONFIG_MSM8953             -march=armv8-a+crypto
+ 
+ 
+ #
+@@ -105,6 +108,7 @@ DEPLOYMENT_TARGET_DEFINES = -DXNU_PLATFORM_$(PLATFORM)
  DEFINES = -DAPPLE -DKERNEL -DKERNEL_PRIVATE -DXNU_KERNEL_PRIVATE \
  	-DPRIVATE -D__MACHO__=1 -Dvolatile=__volatile -DXNU_KERN_EVENT_DATA_IS_VLA \
  	-DCURRENT_MACHINE_CONFIG_LC=$(CURRENT_MACHINE_CONFIG_LC) \
